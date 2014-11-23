@@ -5,8 +5,16 @@
 */
 #pragma once
 
+//~~~~~~~~~~~~ UMG ~~~~~~~~~~~~~~~
+#include "Runtime/UMG/Public/UMG.h"
+#include "Runtime/UMG/Public/UMGStyle.h"
+#include "Runtime/UMG/Public/Slate/SObjectWidget.h"
+#include "Runtime/UMG/Public/IUMGModule.h"
+#include "Runtime/UMG/Public/Blueprint/UserWidget.h"
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//									Includes
+//									Includes for other's Nodes
 //Audio
 #include "Components/AudioComponent.h"
 #include "AudioDecompress.h"
@@ -34,8 +42,57 @@
 // Methods in subclasses are expected to be static, and no methods should be added to the base class.
 
 
+USTRUCT(BlueprintType)
+struct FVictoryInput
+{
+	GENERATED_USTRUCT_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	FString ActionName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	FKey Key;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	FString KeyAsString;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	uint32 bShift:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	uint32 bCtrl:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	uint32 bAlt:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input Song")
+	uint32 bCmd:1;
+	
+	   
+	FVictoryInput(){}
+	FVictoryInput(const FString InActionName, const FKey InKey, const bool bInShift, const bool bInCtrl, const bool bInAlt, const bool bInCmd)
+		: Key(InKey)
+		, KeyAsString(Key.GetDisplayName().ToString())
+		, bShift(bInShift)
+		, bCtrl(bInCtrl)
+		, bAlt(bInAlt)
+		, bCmd(bInCmd)
+	{ 
+		ActionName = InActionName;
+	}
+	
+	FVictoryInput(const FInputActionKeyMapping& Action)
+		: Key(Action.Key)
+		, KeyAsString(Action.Key.GetDisplayName().ToString())
+		, bShift(Action.bShift)
+		, bCtrl(Action.bCtrl)
+		, bAlt(Action.bAlt)
+		, bCmd(Action.bCmd)
+	{  
+		ActionName = Action.ActionName.ToString();
+	}
+}; 
+ 
 UENUM(BlueprintType)
 namespace EJoyGraphicsFullScreen
 {
@@ -58,6 +115,125 @@ class VICTORYBPLIBRARY_API UVictoryBPFunctionLibrary : public UBlueprintFunction
 {
 	GENERATED_UCLASS_BODY()
 	
+	//~~~~ Key Re Binding ! ~~~~
+	  
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Key Rebinding")
+	static FVictoryInput VictoryGetVictoryInput(const FKeyboardEvent& KeyEvent);
+	
+	static FORCEINLINE void UpdateActionMapping(FInputActionKeyMapping& Destination, const FVictoryInput& VictoryInputBind)
+	{
+		Destination.Key		= VictoryInputBind.Key;
+		Destination.bShift	= VictoryInputBind.bShift;
+		Destination.bCtrl		= VictoryInputBind.bCtrl;	
+		Destination.bAlt			= VictoryInputBind.bAlt;
+		Destination.bCmd 		= VictoryInputBind.bCmd;
+	}
+
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Key Rebinding")
+	static void VictoryGetAllKeyBindings(TArray<FVictoryInput>& Bindings);
+	
+	/** You can leave the AsString field blank :) Returns false if the key could not be found as an existing mapping!  Enjoy! <3  Rama */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Key Rebinding")
+	static bool VictoryReBindKey(FVictoryInput Action);
+	
+	/*
+		To do = axis key bindings, check out same place where  FInputActionKeyMapping is defined
+	*/
+	 
+	//~~~~~~~~~~~~~~~~~~~~
+	
+	/** Change volume of Sound class of your choosing, sets the volume instantly! Returns false if the sound class was not found and volume was not set. */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Sound")
+	static bool VictorySoundVolumeChange(USoundClass* SoundClassObject, float NewVolume);
+	
+	/** Get Current Sound Volume! Returns -1 if sound class was not found*/
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Sound")
+	static float VictoryGetSoundVolume(USoundClass* SoundClassObject);
+	
+	//~~~~~~~~~~~~~~~~~~~~
+	
+	
+	
+	
+	
+	
+	
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static bool VictoryGetCustomConfigVar_Bool(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static int32 VictoryGetCustomConfigVar_Int(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static float VictoryGetCustomConfigVar_Float(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static FVector VictoryGetCustomConfigVar_Vector(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static FRotator VictoryGetCustomConfigVar_Rotator(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static FLinearColor VictoryGetCustomConfigVar_Color(FString SectionName,FString VariableName);
+	
+	/** Get Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static FString VictoryGetCustomConfigVar_String(FString SectionName,FString VariableName);
+	
+	//~~~~~~~~~~~~~~~~~~~~
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Bool(FString SectionName,FString VariableName, bool Value);
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Int(FString SectionName,FString VariableName, int32 Value);
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Float(FString SectionName,FString VariableName, float Value);
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Vector(FString SectionName,FString VariableName, FVector Value);
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Rotator(FString SectionName,FString VariableName, FRotator Value);
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_Color(FString SectionName,FString VariableName, FLinearColor Value);
+	
+	
+	/** Set Custom Config Var! These are stored in Saved/Config/Windows/Game.ini */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Custom Config Vars!")
+	static void VictorySetCustomConfigVar_String(FString SectionName,FString VariableName, FString Value);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	/** The FName that is expected is the exact same format as when you right click on asset -> Copy Reference! You can directly paste copied references into this node! IsValid lets you know if the path was correct or not and I was able to load the object. MAKE SURE TO SAVE THE RETURNED OBJECT AS A VARIABLE. Otherwise your shiny new asset will get garbage collected. I recommend you cast the return value to the appropriate object and then promote it to a variable :)  -Rama */
 	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
 	static UObject* LoadObjectFromAssetPath(TSubclassOf<UObject> ObjectClass, FName Path,bool& IsValid);
@@ -65,6 +241,17 @@ class VICTORYBPLIBRARY_API UVictoryBPFunctionLibrary : public UBlueprintFunction
 	/** Uses the same format as I use for LoadObjectFromAssetPath! Use this node to get the asset path of objects in the world! -Rama */
 	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary")
 	static FName GetObjectPath(UObject* Obj);
+	
+	
+	/** Find all widgets of a certain class! Top level only means only widgets that are directly added to the viewport will be found */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|UMG",meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	static void GetAllWidgetsOfClass(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetClass, TArray<UUserWidget*>& FoundWidgets, bool TopLevelOnly=true);
+	
+	/** Remove all widgets of a certain class from viewport! */
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|UMG",meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	static void RemoveAllWidgetsOfClass(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetClass);
+	
+	
 	
 	/** Retrieves the unique net ID for the local player as a number! The number itself will vary based on what Online Subsystem is being used, but you are guaranteed that this number is unique per player! */
 	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary")
@@ -75,11 +262,11 @@ class VICTORYBPLIBRARY_API UVictoryBPFunctionLibrary : public UBlueprintFunction
 	static void Loops_ResetBPRunawayCounter();
 	  
 	/** Set the Max Frame Rate. Min value is 10. */
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Graphics Settings")
 	static void GraphicsSettings__SetFrameRateCap(float NewValue);
 	
 	/** Only hardware dependent, no smoothing */
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Graphics Settings")
 	static void GraphicsSettings__SetFrameRateToBeUnbound();
 	
 	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
@@ -383,19 +570,19 @@ class VICTORYBPLIBRARY_API UVictoryBPFunctionLibrary : public UBlueprintFunction
 	static USkeletalMeshComponent* Accessor__GetCharacterSkeletalMesh(AActor* TheCharacter, bool& IsValid);
 	
 	/** Does Not Do A Trace, But Obtains the Start and End for doing a Trace:\n\nTakes in an actor (for convenience) and tries to cast it to Character. Takes in a socket name to find on the Character's Mesh component, the socket location will be the start of the trace.\n\nAlso takes in the Angle / Rotator and the length of the trace you want to do. Option to draw the trace with variable thickness as it occurs.\n\nReturns what the Trace Start and End should be so you can plug these into any existing trace node you want.\n\nRequires: Character Mesh Component must be valid. Returns False if trace could not be done */
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Traces")
 	static bool TraceData__GetTraceDataFromCharacterSocket( FVector& TraceStart, FVector& TraceEnd, AActor * TheCharacter, const FRotator& TraceRotation, float TraceLength=10240, FName Socket="SocketName", bool DrawTraceData=true, FLinearColor TraceDataColor=FLinearColor(1,0,0,1), float TraceDataThickness=7);
 	
 	/** Does Not Do A Trace, But Obtains the Start and End for doing a Trace:\n\nTakes in a Skeletal Mesh Component and a socket name to trace from. Also takes in the Angle / Rotator and the length of the trace you want to do.\n\nOption to draw the trace as a variable thickness line\n\nReturns what the Trace Start and End should be so you can plug these into any existing trace node you want.\n\n Requires: Mesh must be valid. Returns False if trace could not be done */
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Traces")
 	static bool TraceData__GetTraceDataFromSkeletalMeshSocket(FVector& TraceStart, FVector& TraceEnd, USkeletalMeshComponent* Mesh, const FRotator& TraceRotation, float TraceLength=10240, FName Socket="SocketName", bool DrawTraceData=true, FLinearColor TraceDataColor=FLinearColor(1,0,0,1), float TraceDataThickness=7);
 	
 	/** Does a simple line trace given Trace Start and End, and if a Character is hit by the trace, then a component trace is performed on that character's mesh. Trace Owner is ignored when doing the trace.\n\nReturns the Character that was hit, as an Actor, as well as the name of the bone that was closest to the impact point of the trace. Also returns the impact point itself as well as the impact normal.\n\nUsing component trace ensures accuracy for testing against bones and sockets.\n\nIsValid: Will be true only if the component trace also hit someting. But the Returned Actor will contain an actor if any actor at all was hit by the simple trace. */
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Traces")
 	static AActor* Traces__CharacterMeshTrace___ClosestBone(AActor* TraceOwner, const FVector& TraceStart, const FVector& TraceEnd, FVector& OutImpactPoint, FVector& OutImpactNormal, FName& ClosestBoneName,FVector & ClosestBoneLocation, bool&IsValid);
 	
 	/** Does a simple line trace given Trace Start and End, and if a Character is hit by the trace, then a component trace is performed on that character's mesh. Returns the name of the socket that was closest to the impact point of the trace. Also returns the impact point itself as well as the impact normal. Also returns the Socket Location. Using component trace ensures accuracy for testing against bones and sockets.*/
-	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Traces")
 	static AActor* Traces__CharacterMeshTrace___ClosestSocket(const AActor * TraceOwner, const FVector& TraceStart, const FVector& TraceEnd, FVector& OutImpactPoint, FVector& OutImpactNormal, FName& ClosestSocketName,FVector & SocketLocation,bool&IsValid);
 	
 	/** Returns the float as a String with Precision, Precision 0 = no decimal value. Precison 1 = 1 decimal place. The re-precisioned result is rounded appropriately. */
@@ -454,11 +641,11 @@ class VICTORYBPLIBRARY_API UVictoryBPFunctionLibrary : public UBlueprintFunction
 	//~~~~~~~~~~~~~~~~~~
 	
 	/** Get Full Screen Type */
-	UFUNCTION(BlueprintPure, Category = "Joy Graphics Settings And Post Process")
+	UFUNCTION(BlueprintPure, Category = "VictoryBPLibrary|Graphics Settings")
 	static TEnumAsByte<EJoyGraphicsFullScreen::Type> JoyGraphicsSettings__FullScreen_Get();
 	
 	/** Set Full Screen Type */
-	UFUNCTION(BlueprintCallable, Category = "Joy Graphics Settings And Post Process")
+	UFUNCTION(BlueprintCallable, Category = "VictoryBPLibrary|Graphics Settings")
 	static void JoyGraphicsSettings__FullScreen_Set(TEnumAsByte<EJoyGraphicsFullScreen::Type> NewSetting);
 	
 	

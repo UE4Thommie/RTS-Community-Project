@@ -13,6 +13,399 @@ UVictoryBPFunctionLibrary::UVictoryBPFunctionLibrary(const class FPostConstructI
 {
 	
 }
+ 
+FVictoryInput UVictoryBPFunctionLibrary::VictoryGetVictoryInput(const FKeyboardEvent& KeyEvent)
+{
+	FVictoryInput VInput;
+	 
+	VInput.Key 			= KeyEvent.GetKey();
+	VInput.KeyAsString 	= VInput.Key.GetDisplayName().ToString();
+	
+	VInput.bAlt 		= KeyEvent.IsAltDown();
+	VInput.bCtrl 		= KeyEvent.IsControlDown();
+	VInput.bShift 	= KeyEvent.IsShiftDown();
+	VInput.bCmd 		= KeyEvent.IsCommandDown();
+	
+	return VInput;
+}
+
+void UVictoryBPFunctionLibrary::VictoryGetAllKeyBindings(TArray<FVictoryInput>& Bindings)
+{
+	Bindings.Empty();
+	 
+	const UInputSettings* Settings = GetDefault<UInputSettings>();
+	if(!Settings) return;
+	
+	const TArray<FInputActionKeyMapping>& Actions = Settings->ActionMappings;
+	
+	for(const FInputActionKeyMapping& Each : Actions)
+	{
+		Bindings.Add(FVictoryInput(Each));
+	}
+}
+bool UVictoryBPFunctionLibrary::VictoryReBindKey(FVictoryInput Action)
+{
+	UInputSettings* Settings = const_cast<UInputSettings*>(GetDefault<UInputSettings>());
+	if(!Settings) return false;
+
+	TArray<FInputActionKeyMapping>& Actions = Settings->ActionMappings;
+	
+	//~~~
+	
+	bool Found = false;
+	for(FInputActionKeyMapping& Each : Actions)
+	{
+		if(Each.ActionName.ToString() == Action.ActionName)
+		{  
+			UVictoryBPFunctionLibrary::UpdateActionMapping(Each,Action);
+			Found = true;
+			break;
+		}  
+	}
+	
+	if(Found) 
+	{
+		//SAVES TO DISK
+		const_cast<UInputSettings*>(Settings)->SaveKeyMappings();
+		   
+		//REBUILDS INPUT, creates modified config in Saved/Config/Windows/Input.ini
+		for (TObjectIterator<UPlayerInput> It; It; ++It)
+		{
+			It->ForceRebuildingKeyMaps(true);
+		}
+	}
+	return Found;
+}
+
+
+
+
+
+
+
+
+
+void UVictoryBPFunctionLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetClass, TArray<UUserWidget*>& FoundWidgets,bool TopLevelOnly)
+{
+	//Prevent possibility of an ever-growing array if user uses this in a loop
+	FoundWidgets.Empty();
+	//~~~~~~~~~~~~
+	 
+	if(!WidgetClass) return;
+	if(!WorldContextObject) return;
+	 
+	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if(!World) return;
+	//~~~~~~~~~~~
+	
+	for(TObjectIterator<UUserWidget> Itr; Itr; ++Itr)
+	{
+		if(Itr->GetWorld() != World) continue;
+		//~~~~~~~~~~~~~~~~~~~~~
+		
+		if( ! Itr->IsA(WidgetClass)) continue;
+		//~~~~~~~~~~~~~~~~~~~
+		 
+		//Top Level?
+		if(TopLevelOnly)
+		{
+			//only add top level widgets
+			if(Itr->GetIsVisible())			//IsInViewport in 4.6
+			{
+				FoundWidgets.Add(*Itr);
+			}
+		}
+		else
+		{
+			//add all internal widgets
+			FoundWidgets.Add(*Itr);
+		}
+	}
+} 
+void UVictoryBPFunctionLibrary::RemoveAllWidgetsOfClass(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetClass)
+{
+	if(!WidgetClass) return;
+	if(!WorldContextObject) return;
+	 
+	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if(!World) return;
+	//~~~~~~~~~~~
+	 
+	for(TObjectIterator<UUserWidget> Itr; Itr; ++Itr)
+	{
+		if(Itr->GetWorld() != World) continue;
+		//~~~~~~~~~~~~~~~~~~~~~
+		
+		if( ! Itr->IsA(WidgetClass)) continue;
+		//~~~~~~~~~~~~~~~~~~~
+		 
+		//only add top level widgets
+		if(Itr->GetIsVisible())			//IsInViewport in 4.6
+		{
+			Itr->RemoveFromViewport();
+		}
+	}
+}
+
+
+ 
+
+bool UVictoryBPFunctionLibrary::VictorySoundVolumeChange(USoundClass* SoundClassObject, float NewVolume)
+ {
+	FAudioDevice* Device = GEngine->GetAudioDevice();
+	if (!Device || !SoundClassObject)
+	{
+		return false;
+	}
+	    
+	bool bFound = Device->SoundClasses.Contains(SoundClassObject);
+	if(bFound)
+	{ 
+		Device->SetClassVolume(SoundClassObject, NewVolume);
+		return true;
+	}
+	return false;
+ }
+float UVictoryBPFunctionLibrary::VictoryGetSoundVolume(USoundClass* SoundClassObject)
+{
+	FAudioDevice* Device = GEngine->GetAudioDevice();
+	if (!Device || !SoundClassObject)
+	{
+		return -1;
+	}
+	    
+	FSoundClassProperties* Props = Device->GetSoundClassCurrentProperties(SoundClassObject);
+	if(!Props) return -1;
+	return Props->Volume;
+}
+
+
+
+
+
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+bool UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Bool(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return false;
+	//~~~~~~~~~~~
+ 
+	bool Value;
+	GConfig->GetBool(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+int32 UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Int(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return 0;
+	//~~~~~~~~~~~
+ 
+	int32 Value;
+	GConfig->GetInt(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+float UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Float(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return 0;
+	//~~~~~~~~~~~
+ 
+	float Value;
+	GConfig->GetFloat(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+FVector UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Vector(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return FVector::ZeroVector;
+	//~~~~~~~~~~~
+ 
+	FVector Value;
+	GConfig->GetVector(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+FRotator UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Rotator(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return FRotator::ZeroRotator;
+	//~~~~~~~~~~~
+ 
+	FRotator Value;
+	GConfig->GetRotator(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+FLinearColor UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_Color(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return FColor::Black;
+	//~~~~~~~~~~~
+  
+	FColor Value;
+	GConfig->GetColor(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return FLinearColor(Value);
+}
+FString UVictoryBPFunctionLibrary::VictoryGetCustomConfigVar_String(FString SectionName,FString VariableName)
+{
+	if(!GConfig) return "";
+	//~~~~~~~~~~~
+ 
+	FString Value;
+	GConfig->GetString(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+	return Value;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Bool(FString SectionName,FString VariableName, bool Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+ 
+	GConfig->SetBool(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Int(FString SectionName,FString VariableName, int32 Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+ 
+	GConfig->SetInt(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Float(FString SectionName,FString VariableName, float Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+	
+	GConfig->SetFloat(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Vector(FString SectionName,FString VariableName, FVector Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+	
+	GConfig->SetVector(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Rotator(FString SectionName,FString VariableName, FRotator Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+	
+	GConfig->SetRotator(
+		*SectionName,
+		*VariableName,
+		Value,
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_Color(FString SectionName,FString VariableName, FLinearColor Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+	 
+	GConfig->SetColor(
+		*SectionName,
+		*VariableName,
+		FColor(Value),
+		GGameIni
+	);
+}
+void UVictoryBPFunctionLibrary::VictorySetCustomConfigVar_String(FString SectionName,FString VariableName, FString Value)
+{
+	if(!GConfig) return;
+	//~~~~~~~~~~~
+ 
+	GConfig->SetString(
+		*SectionName,
+		*VariableName,
+		*Value,
+		GGameIni
+	);
+}
+
+
+
+
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 UObject* UVictoryBPFunctionLibrary::LoadObjectFromAssetPath(TSubclassOf<UObject> ObjectClass,FName Path,bool& IsValid)
 {

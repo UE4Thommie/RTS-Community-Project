@@ -12,7 +12,8 @@ public class VictoryBPLibrary : ModuleRules
 				"CoreUObject", 
 				"Engine", 
 				"InputCore",
-				"RHI"
+				"RHI",
+				"UMG", "Slate", "SlateCore"
 			}
 		);
 		//Private Paths
