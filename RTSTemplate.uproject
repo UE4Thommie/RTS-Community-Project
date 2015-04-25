@@ -1,12 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.7",
 	"Category": "",
 	"Description": "",
-	"Plugins": [
-		{
-			"Name": "VictoryPlugin",
-			"Enabled": false
-		}
-	]
+	"EngineAssociation": "4.5"
 }
